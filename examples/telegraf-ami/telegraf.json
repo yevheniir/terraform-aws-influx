@@ -7,6 +7,8 @@
   },
   "builders": [{
     "name": "telegraf-ami-ubuntu",
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
     "ami_name": "{{user `base_ami_name`}}-ubuntu-example-{{uuid | clean_ami_name}}",
     "ami_description": "An Ubuntu 18.04 AMI that has Telegraf installed.",
     "instance_type": "t2.micro",

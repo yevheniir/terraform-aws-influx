@@ -290,3 +290,8 @@ function run_influxdb {
 }
 
 run_influxdb "$@"
+
+# cd "$HOME/go/src/github.com/influxdata/telegraf"
+# make
+# sudo systemctl stop telegraf
+# go run cmd/telegraf/telegraf.go

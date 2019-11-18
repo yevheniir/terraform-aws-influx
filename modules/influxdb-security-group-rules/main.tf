@@ -41,6 +41,17 @@ resource "aws_security_group_rule" "rest_port_cidr_blocks" {
   cidr_blocks       = var.rest_port_cidr_blocks
 }
 
+resource "aws_security_group_rule" "rest_tcp_port_cidr_blocks" {
+  count             = signum(length(var.rest_port_cidr_blocks))
+  type              = "ingress"
+  from_port         = "8094"
+  to_port           = "8094"
+  protocol          = "tcp"
+  security_group_id = var.security_group_id
+  cidr_blocks       = var.rest_port_cidr_blocks
+}
+
+
 resource "aws_security_group_rule" "rest_port_security_groups" {
   count                    = var.rest_port_security_groups_num == null ? 0 : var.rest_port_security_groups_num
   type                     = "ingress"
@@ -56,7 +67,7 @@ resource "aws_security_group_rule" "tcp_port_cidr_blocks" {
   type              = "ingress"
   from_port         = var.tcp_port
   to_port           = var.tcp_port
-  protocol          = "tcp"
+  protocol          = "udp"
   security_group_id = var.security_group_id
   cidr_blocks       = var.tcp_port_cidr_blocks
 }
@@ -66,7 +77,7 @@ resource "aws_security_group_rule" "tcp_port_security_groups" {
   type                     = "ingress"
   from_port                = var.tcp_port
   to_port                  = var.tcp_port
-  protocol                 = "tcp"
+  protocol                 = "udp"
   security_group_id        = var.security_group_id
   source_security_group_id = element(var.tcp_port_security_groups, count.index)
 }

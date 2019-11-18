@@ -38,7 +38,7 @@ module "influxdb_meta_nodes" {
 
   # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
   # R4 or M4 instances.
-  instance_type = "t2.micro"
+  instance_type = "t2.medium"
 
   ami_id    = var.influxdb_ami_id
   user_data = data.template_file.user_data_influxdb_meta_nodes.rendered
@@ -85,12 +85,12 @@ module "influxdb_data_nodes" {
   source = "../../modules/influxdb-cluster"
 
   cluster_name = var.influxdb_data_nodes_cluster_name
-  min_size     = 2
-  max_size     = 2
+  min_size     = 4
+  max_size     = 5
 
   # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
   # R4 or M4 instances.
-  instance_type = "t2.micro"
+  instance_type = "m4.2xlarge"
 
   ami_id    = var.influxdb_ami_id
   user_data = data.template_file.user_data_influxdb_data_nodes.rendered
@@ -101,8 +101,9 @@ module "influxdb_data_nodes" {
   ebs_block_devices = [
     {
       device_name = var.data_volume_device_name
-      volume_type = "gp2"
-      volume_size = 50
+      volume_type = "io1"
+      volume_size = 200
+      iops = 1500
     },
   ]
 
@@ -387,6 +388,53 @@ module "influxdb_load_balancer" {
   idle_timeout                   = 3600
 }
 
+module "influxdb_load_balancer_udp" {
+  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+  # to a specific version of the modules, such as the following example:
+  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer?ref=v0.0.1"
+  source = "../../modules/load-balancer-udp"
+
+  name       = "${var.influxdb_data_nodes_cluster_name}-udp"
+  vpc_id     = data.aws_vpc.default.id
+  subnet_ids = data.aws_subnet_ids.default.ids
+
+  http_listener_ports = [var.influxdb_udp_port]
+  udp_listener_ports = [var.influxdb_udp_port]
+
+  default_target_group_arn = module.influxdb_data_nodes_target_group_udp.target_group_arn
+
+  # To make testing easier, we allow inbound connections from any IP. In production usage, you may want to only allow
+  # connectsion from certain trusted servers, or even use an internal load balancer, so it's only accessible from
+  # within the VPC
+
+  allow_inbound_from_cidr_blocks = ["0.0.0.0/0"]
+  idle_timeout                   = 3600
+}
+
+module "influxdb_load_balancer_tcp" {
+  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+  # to a specific version of the modules, such as the following example:
+  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer?ref=v0.0.1"
+  source = "../../modules/load-balancer-tcp"
+
+  name       = "${var.influxdb_data_nodes_cluster_name}-tcp"
+  vpc_id     = data.aws_vpc.default.id
+  subnet_ids = data.aws_subnet_ids.default.ids
+
+  http_listener_ports = [var.influxdb_udp_port]
+  udp_listener_ports = [var.influxdb_udp_port]
+  tcp_listener_ports = [var.influxdb_tcp_port]
+
+  default_target_group_arn = module.influxdb_data_nodes_target_group_tcp.target_group_arn
+
+  # To make testing easier, we allow inbound connections from any IP. In production usage, you may want to only allow
+  # connectsion from certain trusted servers, or even use an internal load balancer, so it's only accessible from
+  # within the VPC
+
+  allow_inbound_from_cidr_blocks = ["0.0.0.0/0"]
+  idle_timeout                   = 3600
+}
+
 module "influxdb_data_nodes_target_group" {
   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
   # to a specific version of the modules, such as the following example:
@@ -401,6 +449,42 @@ module "influxdb_data_nodes_target_group" {
   vpc_id               = data.aws_vpc.default.id
 
   listener_arns                   = [module.influxdb_load_balancer.http_listener_arns[var.influxdb_api_port]]
+  listener_arns_num               = 1
+  listener_rule_starting_priority = 100
+}
+
+module "influxdb_data_nodes_target_group_udp" {
+  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+  # to a specific version of the modules, such as the following example:
+  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer-target-group?ref=v0.0.1"
+  source = "../../modules/load-balancer-target-group-udp"
+
+  target_group_name    = "${var.influxdb_data_nodes_cluster_name}-tg-udp"
+  asg_name             = module.influxdb_data_nodes.asg_name
+  port                 = "8089"
+  health_check_path    = "/ping"
+  health_check_matcher = "204"
+  vpc_id               = data.aws_vpc.default.id
+
+  listener_arns                   = [module.influxdb_load_balancer_udp.http_listener_arns[var.influxdb_udp_port]]
+  listener_arns_num               = 1
+  listener_rule_starting_priority = 100
+}
+
+module "influxdb_data_nodes_target_group_tcp" {
+  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+  # to a specific version of the modules, such as the following example:
+  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer-target-group?ref=v0.0.1"
+  source = "../../modules/load-balancer-target-group-tcp"
+
+  target_group_name    = "${var.influxdb_data_nodes_cluster_name}-tg-tcp"
+  asg_name             = module.influxdb_data_nodes.asg_name
+  port                 = var.influxdb_tcp_port
+  health_check_path    = "/ping"
+  health_check_matcher = "204"
+  vpc_id               = data.aws_vpc.default.id
+
+  listener_arns                   = [module.influxdb_load_balancer_udp.http_listener_arns[var.influxdb_udp_port]]
   listener_arns_num               = 1
   listener_rule_starting_priority = 100
 }
@@ -485,54 +569,54 @@ module "kapacitor_target_group" {
 # LAUNCH APP SERVER WHICH IS BASICALLY TELEGRAF INSTALLED ON AN EC2 INSTANCE AND FORWARDING MACHINE METRICS TO INFLUXDB
 # ---------------------------------------------------------------------------------------------------------------------
 
-resource "aws_iam_instance_profile" "app_server_profile" {
-  name = "${var.app_server_name}-app-server-profile"
-  role = aws_iam_role.app_server_iam_role.name
-}
+# resource "aws_iam_instance_profile" "app_server_profile" {
+#   name = "${var.app_server_name}-app-server-profile"
+#   role = aws_iam_role.app_server_iam_role.name
+# }
 
-resource "aws_iam_role" "app_server_iam_role" {
-  name               = "${var.app_server_name}-app-server-iam-role"
-  assume_role_policy = data.aws_iam_policy_document.app_server_assume_role_policy.json
-}
+# resource "aws_iam_role" "app_server_iam_role" {
+#   name               = "${var.app_server_name}-app-server-iam-role"
+#   assume_role_policy = data.aws_iam_policy_document.app_server_assume_role_policy.json
+# }
 
-data "aws_iam_policy_document" "app_server_assume_role_policy" {
-  statement {
-    actions = ["sts:AssumeRole"]
+# data "aws_iam_policy_document" "app_server_assume_role_policy" {
+#   statement {
+#     actions = ["sts:AssumeRole"]
 
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
+#     principals {
+#       type        = "Service"
+#       identifiers = ["ec2.amazonaws.com"]
+#     }
+#   }
+# }
 
-resource "aws_security_group" "app_server_sg" {
-  name        = "${var.app_server_name}-app-server-sg"
-  description = "Security group for Application Server"
-  vpc_id      = data.aws_vpc.default.id
-}
+# resource "aws_security_group" "app_server_sg" {
+#   name        = "${var.app_server_name}-app-server-sg"
+#   description = "Security group for Application Server"
+#   vpc_id      = data.aws_vpc.default.id
+# }
 
-resource "aws_instance" "app_server" {
-  ami                    = var.telegraf_ami_id
-  instance_type          = "t2.micro"
-  user_data              = data.template_file.app_server_user_data.rendered
-  iam_instance_profile   = aws_iam_instance_profile.app_server_profile.name
-  vpc_security_group_ids = [module.influxdb_data_nodes.security_group_id, aws_security_group.app_server_sg.id]
-  key_name               = var.ssh_key_name
+# resource "aws_instance" "app_server" {
+#   ami                    = var.telegraf_ami_id
+#   instance_type          = "t2.micro"
+#   user_data              = data.template_file.app_server_user_data.rendered
+#   iam_instance_profile   = aws_iam_instance_profile.app_server_profile.name
+#   vpc_security_group_ids = [module.influxdb_data_nodes.security_group_id, aws_security_group.app_server_sg.id]
+#   key_name               = var.ssh_key_name
 
-  tags = {
-    Name = var.app_server_name
-  }
-}
+#   tags = {
+#     Name = var.app_server_name
+#   }
+# }
 
-data "template_file" "app_server_user_data" {
-  template = file("${path.module}/user-data/telegraf/user-data.sh")
+# data "template_file" "app_server_user_data" {
+#   template = file("${path.module}/user-data/telegraf/user-data.sh")
 
-  vars = {
-    influxdb_url  = "http://${module.influxdb_load_balancer.alb_dns_name}:${var.influxdb_api_port}"
-    database_name = var.telegraf_database
-  }
-}
+#   vars = {
+#     influxdb_url  = "http://${module.influxdb_load_balancer.alb_dns_name}:${var.influxdb_api_port}"
+#     database_name = var.telegraf_database
+#   }
+# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DEPLOY INFLUXDB IN THE DEFAULT VPC AND SUBNETS

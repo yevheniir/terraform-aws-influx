@@ -14,31 +14,37 @@
 variable "license_key" {
   description = "The key of your InfluxDB Enterprise license. This should not be set in plain-text and can be passed in as an env var or from a secrets management tool."
   type        = string
+  default     = "55fa424d-d24f-403e-94e9-3bdf24bd78ee"
 }
 
 variable "shared_secret" {
   description = "A long pass phrase that will be used to sign tokens for intra-cluster communication on data nodes. This should not be set in plain-text and can be passed in as an env var or from a secrets management tool."
   type        = string
+  default     = "influx_cluster_shared_secret"
 }
 
 variable "telegraf_ami_id" {
   description = "The ID of the Telegraf AMI to run in the cluster. This should be an AMI built from the Packer template under examples/telegraf-ami/influxdb.json."
   type        = string
+  default     = "ami-03e8e10c50f9a07e8"
 }
 
 variable "influxdb_ami_id" {
   description = "The ID of the InfluxDB AMI to run in the cluster. This should be an AMI built from the Packer template under examples/influxdb-ami/influxdb.json."
   type        = string
+  default     = "ami-063abf3e30621cb95"
 }
 
 variable "chronograf_ami_id" {
   description = "The ID of the Chronograf AMI to run in the cluster. This should be an AMI built from the Packer template under examples/chronograf-ami/influxdb.json."
   type        = string
+  default     = "ami-0b49bc2421eecd2dd"
 }
 
 variable "kapacitor_ami_id" {
   description = "The ID of the Kapacitor AMI to run in the cluster. This should be an AMI built from the Packer template under examples/kapacitor-ami/influxdb.json."
   type        = string
+  default     = "ami-0ee50881d9726becb"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -68,6 +74,18 @@ variable "influxdb_api_port" {
   description = "The HTTP API port the Data nodes listen on for external communication."
   type        = string
   default     = "8086"
+}
+
+variable "influxdb_udp_port" {
+  description = "The UDP port the Data nodes listen on for external communication."
+  type        = string
+  default     = "8089"
+}
+
+variable "influxdb_tcp_port" {
+  description = "The TCP port the Data nodes listen on for external communication."
+  type        = string
+  default     = "8094"
 }
 
 variable "chronograf_host" {
@@ -121,7 +139,7 @@ variable "kapacitor_server_name" {
 variable "ssh_key_name" {
   description = "The name of an EC2 Key Pair that can be used to SSH to the EC2 Instances in this cluster. Set to an empty string to not associate a Key Pair."
   type        = string
-  default     = null
+  default     = "SPG team key"
 }
 
 variable "meta_volume_device_name" {
