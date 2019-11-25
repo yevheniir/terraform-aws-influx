@@ -3,8 +3,8 @@
 # Define these secrets as environment variables
 # ---------------------------------------------------------------------------------------------------------------------
 
-# AWS_ACCESS_KEY_ID
-# AWS_SECRET_ACCESS_KEY
+# export AWS_ACCESS_KEY_ID=
+# export AWS_SECRET_ACCESS_KEY=
 
 # ---------------------------------------------------------------------------------------------------------------------
 # REQUIRED PARAMETERS
@@ -32,7 +32,7 @@ variable "telegraf_ami_id" {
 variable "influxdb_ami_id" {
   description = "The ID of the InfluxDB AMI to run in the cluster. This should be an AMI built from the Packer template under examples/influxdb-ami/influxdb.json."
   type        = string
-  default     = "ami-063abf3e30621cb95"
+  default     = "ami-0fac8a516f24df10e"
 }
 
 variable "chronograf_ami_id" {

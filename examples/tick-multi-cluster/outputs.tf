@@ -18,10 +18,10 @@ output "chronograf_port" {
   value = module.chronograf_security_group_rules.http_port
 }
 
-output "kapacitor_dns" {
-  value = module.kapacitor_load_balancer.alb_dns_name
-}
+# output "kapacitor_dns" {
+#   value = module.kapacitor_load_balancer.alb_dns_name
+# }
 
-output "kapacitor_port" {
-  value = module.kapacitor_security_group_rules.http_port
-}
+# output "kapacitor_port" {
+#   value = module.kapacitor_security_group_rules.http_port
+# }

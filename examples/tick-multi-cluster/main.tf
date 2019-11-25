@@ -85,12 +85,13 @@ module "influxdb_data_nodes" {
   source = "../../modules/influxdb-cluster"
 
   cluster_name = var.influxdb_data_nodes_cluster_name
-  min_size     = 4
+  min_size     = 1
   max_size     = 5
 
   # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
   # R4 or M4 instances.
-  instance_type = "m4.2xlarge"
+  # instance_type = "m4.2xlarge"
+  instance_type = "c5.2xlarge"
 
   ami_id    = var.influxdb_ami_id
   user_data = data.template_file.user_data_influxdb_data_nodes.rendered
@@ -98,12 +99,15 @@ module "influxdb_data_nodes" {
   vpc_id     = data.aws_vpc.default.id
   subnet_ids = data.aws_subnet_ids.default.ids
 
+  root_volume_size = 200
+  root_volume_iops = 10000
+
   ebs_block_devices = [
     {
       device_name = var.data_volume_device_name
       volume_type = "io1"
-      volume_size = 200
-      iops = 1500
+      volume_size = 100
+      iops = 5000
     },
   ]
 
@@ -168,44 +172,44 @@ module "chronograf_server" {
 # DEPLOY THE KAPACITOR SERVER
 # ---------------------------------------------------------------------------------------------------------------------
 
-module "kapacitor_server" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/kapacitor-server?ref=v0.0.1"
-  source = "../../modules/kapacitor-server"
+# module "kapacitor_server" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/kapacitor-server?ref=v0.0.1"
+#   source = "../../modules/kapacitor-server"
 
-  cluster_name = var.kapacitor_server_name
+#   cluster_name = var.kapacitor_server_name
 
-  # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
-  # R4 or M4 instances.
-  instance_type = "t2.micro"
+#   # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
+#   # R4 or M4 instances.
+#   instance_type = "t2.micro"
 
-  ami_id    = var.kapacitor_ami_id
-  user_data = data.template_file.user_data_kapacitor_server.rendered
+#   ami_id    = var.kapacitor_ami_id
+#   user_data = data.template_file.user_data_kapacitor_server.rendered
 
-  vpc_id     = data.aws_vpc.default.id
-  subnet_ids = data.aws_subnet_ids.default.ids
+#   vpc_id     = data.aws_vpc.default.id
+#   subnet_ids = data.aws_subnet_ids.default.ids
 
-  ebs_block_devices = [
-    {
-      device_name = var.kapacitor_volume_device_name
-      volume_type = "gp2"
-      volume_size = 50
-    },
-  ]
+#   ebs_block_devices = [
+#     {
+#       device_name = var.kapacitor_volume_device_name
+#       volume_type = "gp2"
+#       volume_size = 50
+#     },
+#   ]
 
-  # To make testing easier, we allow SSH requests from any IP address here. In a production deployment, we strongly
-  # recommend you limit this to the IP address ranges of known, trusted servers inside your VPC.
-  allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
+#   # To make testing easier, we allow SSH requests from any IP address here. In a production deployment, we strongly
+#   # recommend you limit this to the IP address ranges of known, trusted servers inside your VPC.
+#   allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
 
-  ssh_key_name = var.ssh_key_name
+#   ssh_key_name = var.ssh_key_name
 
-  # To make it easy to test this example from your computer, we allow the InfluxDB servers to have public IPs. In a
-  # production deployment, you'll probably want to keep all the servers in private subnets with only private IPs.
-  associate_public_ip_address = true
+#   # To make it easy to test this example from your computer, we allow the InfluxDB servers to have public IPs. In a
+#   # production deployment, you'll probably want to keep all the servers in private subnets with only private IPs.
+#   associate_public_ip_address = true
 
-  health_check_type = "ELB"
-}
+#   health_check_type = "ELB"
+# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # CREATE USER DATA SCRIPTS THAT WILL RUN ON EACH INSTANCE IN THE VARIOUS CLUSTERS/SERVERS ON BOOT
@@ -252,18 +256,18 @@ data "template_file" "user_data_chronograf_server" {
   }
 }
 
-data "template_file" "user_data_kapacitor_server" {
-  template = file("${path.module}/user-data/kapacitor/user-data.sh")
+# data "template_file" "user_data_kapacitor_server" {
+#   template = file("${path.module}/user-data/kapacitor/user-data.sh")
 
-  vars = {
-    hostname     = var.kapacitor_host
-    influxdb_url = "http://${module.influxdb_load_balancer.alb_dns_name}:${var.influxdb_api_port}"
-    # Pass in the data about the EBS volumes so they can be mounted
-    volume_device_name = var.kapacitor_volume_device_name
-    volume_mount_point = var.kapacitor_volume_mount_point
-    volume_owner       = var.kapacitor_volume_owner
-  }
-}
+#   vars = {
+#     hostname     = var.kapacitor_host
+#     influxdb_url = "http://${module.influxdb_load_balancer.alb_dns_name}:${var.influxdb_api_port}"
+#     # Pass in the data about the EBS volumes so they can be mounted
+#     volume_device_name = var.kapacitor_volume_device_name
+#     volume_mount_point = var.kapacitor_volume_mount_point
+#     volume_owner       = var.kapacitor_volume_owner
+#   }
+# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # CONFIGURE THE SECURITY GROUP RULES
@@ -326,20 +330,20 @@ module "chronograf_security_group_rules" {
   http_port_cidr_blocks = ["0.0.0.0/0"]
 }
 
-module "kapacitor_security_group_rules" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/kapacitor-security-group-rules?ref=v0.0.1"
-  source = "../../modules/kapacitor-security-group-rules"
+# module "kapacitor_security_group_rules" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/kapacitor-security-group-rules?ref=v0.0.1"
+#   source = "../../modules/kapacitor-security-group-rules"
 
-  security_group_id = module.kapacitor_server.security_group_id
+#   security_group_id = module.kapacitor_server.security_group_id
 
-  http_port = var.kapacitor_http_port
+#   http_port = var.kapacitor_http_port
 
-  # To keep this example simple, we allow these ports to be accessed from any IP. In a production
-  # deployment, you may want to lock these down just to trusted servers.
-  http_port_cidr_blocks = ["0.0.0.0/0"]
-}
+#   # To keep this example simple, we allow these ports to be accessed from any IP. In a production
+#   # deployment, you may want to lock these down just to trusted servers.
+#   http_port_cidr_blocks = ["0.0.0.0/0"]
+# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # ATTACH IAM POLICIES TO EACH CLUSTER/SERVER
@@ -527,43 +531,43 @@ module "chronograf_target_group" {
   listener_rule_starting_priority = 100
 }
 
-module "kapacitor_load_balancer" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer?ref=v0.0.1"
-  source = "../../modules/load-balancer"
+# module "kapacitor_load_balancer" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer?ref=v0.0.1"
+#   source = "../../modules/load-balancer"
 
-  name       = "${var.kapacitor_server_name}-lb"
-  vpc_id     = data.aws_vpc.default.id
-  subnet_ids = data.aws_subnet_ids.default.ids
+#   name       = "${var.kapacitor_server_name}-lb"
+#   vpc_id     = data.aws_vpc.default.id
+#   subnet_ids = data.aws_subnet_ids.default.ids
 
-  http_listener_ports = [var.kapacitor_http_port]
+#   http_listener_ports = [var.kapacitor_http_port]
 
-  # To make testing easier, we allow inbound connections from any IP. In production usage, you may want to only allow
-  # connectsion from certain trusted servers, or even use an internal load balancer, so it's only accessible from
-  # within the VPC
+#   # To make testing easier, we allow inbound connections from any IP. In production usage, you may want to only allow
+#   # connectsion from certain trusted servers, or even use an internal load balancer, so it's only accessible from
+#   # within the VPC
 
-  allow_inbound_from_cidr_blocks = ["0.0.0.0/0"]
-  idle_timeout                   = 3600
-}
+#   allow_inbound_from_cidr_blocks = ["0.0.0.0/0"]
+#   idle_timeout                   = 3600
+# }
 
-module "kapacitor_target_group" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer-target-group?ref=v0.0.1"
-  source = "../../modules/load-balancer-target-group"
+# module "kapacitor_target_group" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer-target-group?ref=v0.0.1"
+#   source = "../../modules/load-balancer-target-group"
 
-  target_group_name    = "${var.kapacitor_server_name}-tg"
-  asg_name             = module.kapacitor_server.asg_name
-  port                 = var.kapacitor_http_port
-  health_check_path    = "/kapacitor/v1/ping"
-  health_check_matcher = "204"
-  vpc_id               = data.aws_vpc.default.id
+#   target_group_name    = "${var.kapacitor_server_name}-tg"
+#   asg_name             = module.kapacitor_server.asg_name
+#   port                 = var.kapacitor_http_port
+#   health_check_path    = "/kapacitor/v1/ping"
+#   health_check_matcher = "204"
+#   vpc_id               = data.aws_vpc.default.id
 
-  listener_arns                   = [module.kapacitor_load_balancer.http_listener_arns[var.kapacitor_http_port]]
-  listener_arns_num               = 1
-  listener_rule_starting_priority = 100
-}
+#   listener_arns                   = [module.kapacitor_load_balancer.http_listener_arns[var.kapacitor_http_port]]
+#   listener_arns_num               = 1
+#   listener_rule_starting_priority = 100
+# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # LAUNCH APP SERVER WHICH IS BASICALLY TELEGRAF INSTALLED ON AN EC2 INSTANCE AND FORWARDING MACHINE METRICS TO INFLUXDB

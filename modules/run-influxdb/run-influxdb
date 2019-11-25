@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -e
-
+#/usr/bin/env bash
 # Import the appropriate bash commons libraries
 readonly BASH_COMMONS_DIR="/opt/gruntwork/bash-commons"
 readonly DEFAULT_META_CONFIG_FILE_PATH="/etc/influxdb/influxdb-meta.conf"

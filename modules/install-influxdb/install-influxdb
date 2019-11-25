@@ -1,12 +1,12 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -e
-
+#/usr/bin/env bash
 # Import the appropriate bash commons libraries
 readonly BASH_COMMONS_DIR="/opt/gruntwork/bash-commons"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-readonly DEFAULT_INFLUXDB_VERSION="1.6.2"
+readonly DEFAULT_INFLUXDB_VERSION="1.7.9"
 
 readonly DEFAULT_TEMP_META_CONFIG_FILE_PATH="/tmp/config/influxdb-meta.conf"
 readonly DEFAULT_TEMP_DATA_CONFIG_FILE_PATH="/tmp/config/influxdb.conf"
@@ -152,5 +152,7 @@ function install_influxdb {
   install_influxdb_scripts "$DEFAULT_INFLUXDB_BIN_DIR"
   install_influxdb_commons "$INFLUXDB_COMMONS_SRC_DIR" "$INFLUXDB_COMMONS_INSTALL_DIR"
 }
-
+sudo mkdir "/tmp/config"
+sudo touch "/tmp/config/influxdb-meta.conf"
+sudo touch "/tmp/config/influxdb.conf"
 install_influxdb "$@"
