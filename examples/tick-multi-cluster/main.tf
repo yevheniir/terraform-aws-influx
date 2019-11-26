@@ -91,7 +91,10 @@ module "influxdb_data_nodes" {
   # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
   # R4 or M4 instances.
   # instance_type = "m4.2xlarge"
-  instance_type = "c5.2xlarge"
+  # instance_type = "c5.2xlarge"
+  # instance_type = "c5n.9xlarge"
+  instance_type = "r5n.4xlarge"
+  
 
   ami_id    = var.influxdb_ami_id
   user_data = data.template_file.user_data_influxdb_data_nodes.rendered
@@ -99,8 +102,8 @@ module "influxdb_data_nodes" {
   vpc_id     = data.aws_vpc.default.id
   subnet_ids = data.aws_subnet_ids.default.ids
 
-  root_volume_size = 200
-  root_volume_iops = 10000
+  root_volume_size = 50
+  # root_volume_iops = 10000
 
   ebs_block_devices = [
     {
@@ -137,36 +140,36 @@ module "influxdb_data_nodes" {
 # DEPLOY THE CHRONOGRAF SERVER
 # ---------------------------------------------------------------------------------------------------------------------
 
-module "chronograf_server" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/chronograf-server?ref=v0.0.1"
-  source = "../../modules/chronograf-server"
+# module "chronograf_server" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/chronograf-server?ref=v0.0.1"
+#   source = "../../modules/chronograf-server"
 
-  cluster_name = var.chronograf_server_name
+#   cluster_name = var.chronograf_server_name
 
-  # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
-  # R4 or M4 instances.
-  instance_type = "t2.micro"
+#   # We use small instance types to keep these examples cheap to run. In a production setting, you'll probably want
+#   # R4 or M4 instances.
+#   instance_type = "t2.micro"
 
-  ami_id    = var.chronograf_ami_id
-  user_data = data.template_file.user_data_chronograf_server.rendered
+#   ami_id    = var.chronograf_ami_id
+#   user_data = data.template_file.user_data_chronograf_server.rendered
 
-  vpc_id     = data.aws_vpc.default.id
-  subnet_ids = data.aws_subnet_ids.default.ids
+#   vpc_id     = data.aws_vpc.default.id
+#   subnet_ids = data.aws_subnet_ids.default.ids
 
-  # To make testing easier, we allow SSH requests from any IP address here. In a production deployment, we strongly
-  # recommend you limit this to the IP address ranges of known, trusted servers inside your VPC.
-  allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
+#   # To make testing easier, we allow SSH requests from any IP address here. In a production deployment, we strongly
+#   # recommend you limit this to the IP address ranges of known, trusted servers inside your VPC.
+#   allowed_ssh_cidr_blocks = ["0.0.0.0/0"]
 
-  ssh_key_name = var.ssh_key_name
+#   ssh_key_name = var.ssh_key_name
 
-  # To make it easy to test this example from your computer, we allow the InfluxDB servers to have public IPs. In a
-  # production deployment, you'll probably want to keep all the servers in private subnets with only private IPs.
-  associate_public_ip_address = true
+#   # To make it easy to test this example from your computer, we allow the InfluxDB servers to have public IPs. In a
+#   # production deployment, you'll probably want to keep all the servers in private subnets with only private IPs.
+#   associate_public_ip_address = true
 
-  health_check_type = "ELB"
-}
+#   health_check_type = "ELB"
+# }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DEPLOY THE KAPACITOR SERVER
@@ -241,7 +244,7 @@ data "template_file" "user_data_influxdb_data_nodes" {
     license_key           = var.license_key
     shared_secret         = var.shared_secret
     # Pass in the data about the EBS volumes so they can be mounted
-    data_volume_device_name = var.data_volume_device_name
+    data_volume_device_name = "/dev/nvme0n1"
     data_volume_mount_point = var.data_volume_mount_point
     volume_owner            = var.influxdb_volume_owner
   }
@@ -315,20 +318,20 @@ module "influxdb_data_nodes_security_group_rules" {
   api_port_cidr_blocks  = ["0.0.0.0/0"]
 }
 
-module "chronograf_security_group_rules" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/chronograf-security-group-rules?ref=v0.0.1"
-  source = "../../modules/chronograf-security-group-rules"
+# module "chronograf_security_group_rules" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/chronograf-security-group-rules?ref=v0.0.1"
+#   source = "../../modules/chronograf-security-group-rules"
 
-  security_group_id = module.chronograf_server.security_group_id
+#   security_group_id = module.chronograf_server.security_group_id
 
-  http_port = var.chronograf_http_port
+#   http_port = var.chronograf_http_port
 
-  # To keep this example simple, we allow these ports to be accessed from any IP. In a production
-  # deployment, you may want to lock these down just to trusted servers.
-  http_port_cidr_blocks = ["0.0.0.0/0"]
-}
+#   # To keep this example simple, we allow these ports to be accessed from any IP. In a production
+#   # deployment, you may want to lock these down just to trusted servers.
+#   http_port_cidr_blocks = ["0.0.0.0/0"]
+# }
 
 # module "kapacitor_security_group_rules" {
 #   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
@@ -493,43 +496,43 @@ module "influxdb_data_nodes_target_group_tcp" {
   listener_rule_starting_priority = 100
 }
 
-module "chronograf_load_balancer" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer?ref=v0.0.1"
-  source = "../../modules/load-balancer"
+# module "chronograf_load_balancer" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer?ref=v0.0.1"
+#   source = "../../modules/load-balancer"
 
-  name       = "${var.chronograf_server_name}-lb"
-  vpc_id     = data.aws_vpc.default.id
-  subnet_ids = data.aws_subnet_ids.default.ids
+#   name       = "${var.chronograf_server_name}-lb"
+#   vpc_id     = data.aws_vpc.default.id
+#   subnet_ids = data.aws_subnet_ids.default.ids
 
-  http_listener_ports = [var.chronograf_http_port]
+#   http_listener_ports = [var.chronograf_http_port]
 
-  # To make testing easier, we allow inbound connections from any IP. In production usage, you may want to only allow
-  # connectsion from certain trusted servers, or even use an internal load balancer, so it's only accessible from
-  # within the VPC
+#   # To make testing easier, we allow inbound connections from any IP. In production usage, you may want to only allow
+#   # connectsion from certain trusted servers, or even use an internal load balancer, so it's only accessible from
+#   # within the VPC
 
-  allow_inbound_from_cidr_blocks = ["0.0.0.0/0"]
-  idle_timeout                   = 3600
-}
+#   allow_inbound_from_cidr_blocks = ["0.0.0.0/0"]
+#   idle_timeout                   = 3600
+# }
 
-module "chronograf_target_group" {
-  # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
-  # to a specific version of the modules, such as the following example:
-  # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer-target-group?ref=v0.0.1"
-  source = "../../modules/load-balancer-target-group"
+# module "chronograf_target_group" {
+#   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you
+#   # to a specific version of the modules, such as the following example:
+#   # source = "git::git@github.com:gruntwork-io/terraform-aws-influx.git//modules/load-balancer-target-group?ref=v0.0.1"
+#   source = "../../modules/load-balancer-target-group"
 
-  target_group_name    = "${var.chronograf_server_name}-tg"
-  asg_name             = module.chronograf_server.asg_name
-  port                 = var.chronograf_http_port
-  health_check_path    = "/"
-  health_check_matcher = "200"
-  vpc_id               = data.aws_vpc.default.id
+#   target_group_name    = "${var.chronograf_server_name}-tg"
+#   asg_name             = module.chronograf_server.asg_name
+#   port                 = var.chronograf_http_port
+#   health_check_path    = "/"
+#   health_check_matcher = "200"
+#   vpc_id               = data.aws_vpc.default.id
 
-  listener_arns                   = [module.chronograf_load_balancer.http_listener_arns[var.chronograf_http_port]]
-  listener_arns_num               = 1
-  listener_rule_starting_priority = 100
-}
+#   listener_arns                   = [module.chronograf_load_balancer.http_listener_arns[var.chronograf_http_port]]
+#   listener_arns_num               = 1
+#   listener_rule_starting_priority = 100
+# }
 
 # module "kapacitor_load_balancer" {
 #   # When using these modules in your own code, you will need to use a Git URL with a ref attribute that pins you

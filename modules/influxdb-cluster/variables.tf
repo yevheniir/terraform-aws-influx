@@ -104,7 +104,7 @@ variable "root_volume_ebs_optimized" {
 
 variable "root_volume_type" {
   description = "The type of volume. Must be one of: standard, gp2, or io1."
-  default     = "io1"
+  default     = "gp2"
 }
 
 variable "root_volume_size" {
@@ -122,7 +122,7 @@ variable "root_volume_delete_on_termination" {
 variable "root_volume_iops" {
   description = "The amount of provisioned IOPS for the root volume. Only used if volume type is io1."
   type        = number
-  default     = 2500
+  default     = 0
 }
 
 variable "ebs_block_devices" {

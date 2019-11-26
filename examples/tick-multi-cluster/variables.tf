@@ -14,7 +14,7 @@
 variable "license_key" {
   description = "The key of your InfluxDB Enterprise license. This should not be set in plain-text and can be passed in as an env var or from a secrets management tool."
   type        = string
-  default     = "55fa424d-d24f-403e-94e9-3bdf24bd78ee"
+  default     = "7563048b-021b-4ddf-b856-6f4da2809bc2"
 }
 
 variable "shared_secret" {
@@ -32,7 +32,7 @@ variable "telegraf_ami_id" {
 variable "influxdb_ami_id" {
   description = "The ID of the InfluxDB AMI to run in the cluster. This should be an AMI built from the Packer template under examples/influxdb-ami/influxdb.json."
   type        = string
-  default     = "ami-0fac8a516f24df10e"
+  default     = "ami-000f3593ee4b24c96"
 }
 
 variable "chronograf_ami_id" {
@@ -157,7 +157,7 @@ variable "meta_volume_mount_point" {
 variable "data_volume_device_name" {
   description = "The device name to use for the EBS Volume used for the meta, data, wal and hh directories on InfluxDB nodes."
   type        = string
-  default     = "/dev/xvdh"
+  default     = "/dev/sdf"
 }
 
 variable "data_volume_mount_point" {
@@ -175,7 +175,7 @@ variable "influxdb_volume_owner" {
 variable "kapacitor_volume_device_name" {
   description = "The device name to use for the EBS Volume used for the Kapacitor storage directory."
   type        = string
-  default     = "/dev/xvdh"
+  default     = "/dev/sdf"
 }
 
 variable "kapacitor_volume_mount_point" {
